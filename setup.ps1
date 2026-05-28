@@ -49,22 +49,17 @@ try {
 } catch {}
 
 if (-not $claudeOk) {
-    Write-Host ""
-    Write-Host "  Claude CLI not found on PATH." -ForegroundColor Yellow
-    Write-Host "  Make sure Claude Desktop is installed, then install the plugin manually:" -ForegroundColor White
-    Write-Host ""
-    Write-Host "  1. Open PowerShell" -ForegroundColor Gray
-    Write-Host "  2. Navigate to the folder where this script is saved, for example:" -ForegroundColor Gray
-    Write-Host "       cd C:\Users\$env:USERNAME\Desktop\qa-navigator-plugin" -ForegroundColor Cyan
-    Write-Host "  3. Run these two commands:" -ForegroundColor Gray
-    Write-Host "       claude plugin marketplace add https://github.com/olebakAuditdata/qa-navigator" -ForegroundColor Cyan
-    Write-Host "       claude plugin install qa-navigator" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "  Then run this script again to complete the token setup." -ForegroundColor White
-    Write-Host ""
-    Write-Host "  Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    exit 1
+    Write-Host "  Claude CLI not found. Installing..." -ForegroundColor Yellow
+    & npm install -g @anthropic-ai/claude-code
+    $claudeVersion = & claude --version 2>$null
+    if ($claudeVersion) {
+        Write-Host "  Claude CLI installed: $claudeVersion" -ForegroundColor Green
+    } else {
+        Write-Host "  Installation failed. Please restart PowerShell and run this script again." -ForegroundColor Red
+        Write-Host "  Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        exit 1
+    }
 }
 
 Write-Host "  Adding QA Navigator marketplace..." -ForegroundColor Gray
@@ -214,4 +209,14 @@ $mcpServers["confluence"] = @{
 
 $config["mcpServers"] = $mcpServers
 
-$config | ConvertTo-Json 
+$config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Encoding UTF8
+
+Write-Host "  Config saved to: $configPath" -ForegroundColor Green
+
+# ---------------------------------------------------------------------------
+# Done
+# ---------------------------------------------------------------------------
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "   Setup complete!" -ForegroundColor Green
+Write-Host "=====================
