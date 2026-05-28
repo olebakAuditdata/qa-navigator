@@ -49,10 +49,24 @@ try {
 } catch {}
 
 if (-not $claudeOk) {
-    Write-Host "  Claude CLI not found. Please make sure Claude Desktop is installed." -ForegroundColor Red
-    Write-Host "  Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    exit 1
+    Write-Host "  Claude CLI not found. Installing..." -ForegroundColor Yellow
+    try {
+        & npm install -g @anthropic-ai/claude-code 2>&1 | Out-Null
+        $claudeVersion = & claude --version 2>$null
+        if ($claudeVersion) {
+            Write-Host "  Claude CLI installed: $claudeVersion" -ForegroundColor Green
+            $claudeOk = $true
+        }
+    } catch {}
+
+    if (-not $claudeOk) {
+        Write-Host "  Failed to install Claude CLI. Please install it manually:" -ForegroundColor Red
+        Write-Host "    npm install -g @anthropic-ai/claude-code" -ForegroundColor Gray
+        Write-Host "  Then run this script again." -ForegroundColor Red
+        Write-Host "  Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        exit 1
+    }
 }
 
 Write-Host "  Adding QA Navigator marketplace..." -ForegroundColor Gray
@@ -208,14 +222,4 @@ Write-Host "  Config saved to: $configPath" -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
 # Done
-# ---------------------------------------------------------------------------
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "   Setup complete!" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Next step:" -ForegroundColor White
-Write-Host "  Fully close Claude Desktop (right-click tray icon -> Quit) and reopen it." -ForegroundColor Gray
-Write-Host ""
-Write-Host "Press any key to close..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+#
