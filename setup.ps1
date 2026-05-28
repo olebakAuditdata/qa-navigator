@@ -10,7 +10,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # ---------------------------------------------------------------------------
-# Step 1 - Check Node.js
+# Step 1 - Check / install Node.js
 # ---------------------------------------------------------------------------
 Write-Host "Step 1/4 - Checking Node.js..." -ForegroundColor Yellow
 
@@ -24,17 +24,29 @@ try {
 } catch {}
 
 if (-not $nodeOk) {
-    Write-Host "  Node.js not found. Opening download page..." -ForegroundColor Yellow
-    Start-Process "https://nodejs.org/en/download/"
-    Write-Host ""
-    Write-Host "  Please install Node.js LTS, then run this script again." -ForegroundColor Red
-    Write-Host "  Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    exit 1
+    Write-Host "  Node.js not found. Installing via winget..." -ForegroundColor Yellow
+    try {
+        & winget install -e --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
+        # Refresh PATH so node is available in this session
+        $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+        $nodeVersion = & node --version 2>$null
+        if ($nodeVersion) {
+            Write-Host "  Node.js installed: $nodeVersion" -ForegroundColor Green
+            $nodeOk = $true
+        }
+    } catch {}
+
+    if (-not $nodeOk) {
+        Write-Host "  Could not install Node.js automatically." -ForegroundColor Red
+        Write-Host "  Please install it manually from https://nodejs.org and run this script again." -ForegroundColor Gray
+        Write-Host "  Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        exit 1
+    }
 }
 
 # ---------------------------------------------------------------------------
-# Step 2 - Install plugin via Claude CLI
+# Step 2 - Check / install Claude CLI, then install plugin
 # ---------------------------------------------------------------------------
 Write-Host ""
 Write-Host "Step 2/4 - Installing QA Navigator plugin..." -ForegroundColor Yellow
@@ -51,9 +63,12 @@ try {
 if (-not $claudeOk) {
     Write-Host "  Claude CLI not found. Installing..." -ForegroundColor Yellow
     & npm install -g @anthropic-ai/claude-code
+    # Refresh PATH
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
     $claudeVersion = & claude --version 2>$null
     if ($claudeVersion) {
         Write-Host "  Claude CLI installed: $claudeVersion" -ForegroundColor Green
+        $claudeOk = $true
     } else {
         Write-Host "  Installation failed. Please restart PowerShell and run this script again." -ForegroundColor Red
         Write-Host "  Press any key to exit..."
@@ -72,10 +87,10 @@ try {
 
 Write-Host "  Installing qa-navigator plugin..." -ForegroundColor Gray
 try {
-    $installOutput = & claude plugin install qa-navigator 2>&1
+    & claude plugin install qa-navigator 2>&1 | Out-Null
     Write-Host "  Plugin installed." -ForegroundColor Green
 } catch {
-    Write-Host "  Plugin install failed or already installed, continuing..." -ForegroundColor Gray
+    Write-Host "  Plugin may already be installed, continuing..." -ForegroundColor Gray
 }
 
 # ---------------------------------------------------------------------------
@@ -194,29 +209,3 @@ $mcpServers["azure-devops"] = @{
         AZURE_DEVOPS_AUTH_TYPE = "pat"
         AZURE_DEVOPS_TOKEN     = $pat.Trim()
     }
-}
-
-# Confluence MCP
-$mcpServers["confluence"] = @{
-    command = "npx"
-    args    = @("-y", "@aashari/mcp-server-atlassian-confluence")
-    env     = @{
-        ATLASSIAN_SITE_NAME  = "auditdata"
-        ATLASSIAN_USER_EMAIL = $userEmail.Trim()
-        ATLASSIAN_API_TOKEN  = $confluenceToken.Trim()
-    }
-}
-
-$config["mcpServers"] = $mcpServers
-
-$config | ConvertTo-Json -Depth 10 | Set-Content -Path $configPath -Encoding UTF8
-
-Write-Host "  Config saved to: $configPath" -ForegroundColor Green
-
-# ---------------------------------------------------------------------------
-# Done
-# ---------------------------------------------------------------------------
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "   Setup complete!" -ForegroundColor Green
-Write-Host "=====================
