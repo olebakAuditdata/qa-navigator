@@ -1,0 +1,11 @@
+{
+  "name": "auditdata-qa-navigator",
+  "owner": { "name": "Auditdata" },
+  "plugins": [
+    {
+      "name": "qa-navigator",
+      "source": "./",
+      "description": "Helps the QA team find test cases, test plans, suites, and duplicates across Azure DevOps and Confluence."
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "qa-navigator",
+  "version": "1.0.0",
+  "description": "Helps the QA team find test cases, test plans, suites, and duplicates across Azure DevOps and Confluence.",
+  "author": {
+    "name": "Auditdata"
+  }
+}
